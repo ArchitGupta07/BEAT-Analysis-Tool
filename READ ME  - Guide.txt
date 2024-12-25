@@ -1,0 +1,18 @@
+Read the instructions below for BAT - Beat Analysis Tool:-
+
+
+Step 1 (One Time): Install Python from windows store
+
+Step 2: Open the folder "Mapping Tool" and right-click anywhere on the screen and Open Terminal
+
+Step 3: (One Time): Write or paste the command 'pip install -r requirements.txt' in the terminal
+
+Step 4: Paste the retailer master for relevant distributor inside 'Data' folder
+
+Step 5: Write or paste the command 'python bat.py' in the terminal
+
+Step 6: Play with it !!!
+
+
+Thank You!!! 
+For any further queries contact: saket.nayal@in.nestle.com
