@@ -25,8 +25,8 @@ def load_and_preprocess_data(file_path):
     data = data[data['Channel'] != 'Wholesalers']
 
     # Filter for coordinates in Mumbai
-    data = data[(data['Latitude'] >= 18.87) & (data['Latitude'] <= 19.30) & 
-                (data['Longitude'] >= 72.77) & (data['Longitude'] <= 72.98)]
+    data = data[(data['Latitude'] >= 18.50) & (data['Latitude'] <= 19.90) & 
+                (data['Longitude'] >= 72.60) & (data['Longitude'] <= 73.10)]
 
     return data, distributor_code
 
@@ -234,5 +234,5 @@ def clustering_algo_split_main(max_split_cluster_size=20, min_cluster_size=10):
         save_to_excel(data, output_excel_path)
 
 # # Run the script
-if __name__ == "__main__":
-    clustering_algo_split_main()
+# if __name__ == "__main__":
+#     clustering_algo_split_main()

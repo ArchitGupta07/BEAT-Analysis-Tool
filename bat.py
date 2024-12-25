@@ -66,7 +66,7 @@ def handle_clustering_option():
 def handle_cluster_sizing(min_limit):
     """Handles the regular clustering option with size validation."""
     while True:
-        cluster_size_option = input("Do you want to Change cluster size values (yes/no): \n Default size Regular -> 40 & Split ->20 ").lower()
+        cluster_size_option = input("Do you want to Change cluster size values: \n Default size Regular -> 40 & Split -> 20 \n Please enter (yes/no)").lower()
         if cluster_size_option == "yes":
             while True:
                 max_cluster_size = get_valid_integer("Please Input The max limit: ")
@@ -91,7 +91,7 @@ def handle_cluster_sizing(min_limit):
 def handle_multiple_max_cluster_sizes():
     
     while True:
-        cluster_size_option = input("Do you want to change maximum cluster size values for Split and Regular (yes/no): ").lower()
+        cluster_size_option = input("Do you want to change maximum cluster size values for Split and Regular (Yes/No): ").lower()
         if cluster_size_option == "yes":
             while True:
                 max_split_size = get_valid_integer("Please Input the maximum cluster size for Split Coverage: ")

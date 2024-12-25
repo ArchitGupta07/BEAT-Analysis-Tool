@@ -20,15 +20,15 @@ def load_and_preprocess_data(file_path):
         raise ValueError("The Excel file must contain 'Latitude', 'Longitude', and 'Coverage Type' columns.")
 
     data = data.dropna(subset=['Latitude', 'Longitude', 'Coverage Type'])
-
+    distributor_code = data['Distr Code'].iloc[0]
     # Exclude rows where Channel is 'Wholesalers'
     data = data[data['Channel'] != 'Wholesalers']
 
     # Filter for coordinates in Mumbai
-    data = data[(data['Latitude'] >= 18.87) & (data['Latitude'] <= 19.30) & 
-                (data['Longitude'] >= 72.77) & (data['Longitude'] <= 72.98)]
+    data = data[(data['Latitude'] >= 18.50) & (data['Latitude'] <= 19.90) & 
+                (data['Longitude'] >= 72.60) & (data['Longitude'] <= 73.10)]
 
-    return data
+    return data, distributor_code
 
 # Function to apply KMeans clustering dynamically for each Coverage Type
 def apply_kmeans_clustering(data, max_split_cluster_size=20, max_regular_cluster_size=40, min_cluster_size_split=10,min_cluster_size_regular=20):
@@ -100,7 +100,7 @@ def save_to_excel(data, output_excel_path):
     print(f"Data with cluster IDs saved to {output_excel_path}")
 
 # Function to create a Folium map for clusters
-def create_folium_map(data, output_path, title='Cluster Map'):
+def create_folium_map(data, output_path, distributor_code, title='Cluster Map'):
     mean_lat, mean_lon = data['Latitude'].mean(), data['Longitude'].mean()
     # Use a grayscale tile layer
     cluster_map = folium.Map(location=[mean_lat, mean_lon], zoom_start=12, tiles='CartoDB positron')
@@ -112,54 +112,53 @@ def create_folium_map(data, output_path, title='Cluster Map'):
 
     cluster_sizes = {}  # Dictionary to store cluster sizes
 
-    # Separate points by 'Coverage Type' category
-    for coverage_type in data['Coverage Type'].unique():
-        coverage_data = data[data['Coverage Type'] == coverage_type]
+    # Only process 'Split Coverage' data
+    coverage_data = data[data['Coverage Type'] == 'Split Coverage']
 
-        for cluster_id in coverage_data['cluster_id'].unique():
-            cluster_data = coverage_data[coverage_data['cluster_id'] == cluster_id]
-            cluster_color = colors[cluster_id % len(colors)]
+    for cluster_id in coverage_data['cluster_id'].unique():
+        cluster_data = coverage_data[coverage_data['cluster_id'] == cluster_id]
+        cluster_color = colors[cluster_id % len(colors)]
 
-            # Count the number of points in the current cluster
-            cluster_sizes[cluster_id] = len(cluster_data)
+        # Count the number of points in the current cluster
+        cluster_sizes[cluster_id] = len(cluster_data)
 
-            print(f"Cluster {cluster_id} ({coverage_type}) contains {cluster_sizes[cluster_id]} points.")
+        print(f"Cluster {cluster_id} (Split Coverage) contains {cluster_sizes[cluster_id]} points.")
 
-            if len(cluster_data) > 2:
-                points = cluster_data[['Latitude', 'Longitude']].to_numpy()
-                hull = ConvexHull(points)
-                hull_points = points[hull.vertices]
-                hull_polygon = [tuple(point) for point in hull_points] + [tuple(hull_points[0])]
+        if len(cluster_data) > 2:
+            points = cluster_data[['Latitude', 'Longitude']].to_numpy()
+            hull = ConvexHull(points)
+            hull_points = points[hull.vertices]
+            hull_polygon = [tuple(point) for point in hull_points] + [tuple(hull_points[0])]
 
-                folium.PolyLine(
-                    locations=hull_polygon,
-                    color=cluster_color,
-                    weight=2,
-                    opacity=0.7
-                ).add_to(cluster_map)
+            folium.PolyLine(
+                locations=hull_polygon,
+                color=cluster_color,
+                weight=2,
+                opacity=0.7
+            ).add_to(cluster_map)
 
-            # Add markers with popups and tooltips
-            for _, row in cluster_data.iterrows():
-                popup_content = (
-                    f"Cluster ID: {cluster_id}"
-                    f"Coverage: {coverage_type}"
-                    f"Retail Name: {row.get('Retailer Name', 'N/A')}"
-                    f"Channel Sub Type: {row.get('Channel Sub Type', 'N/A')}"
-                    f"Coordinates: ({row['Latitude']}, {row['Longitude']})"
-                )
-                folium.CircleMarker(
-                    location=[row['Latitude'], row['Longitude']],
-                    radius=5,  # Smaller radius for sharper points
-                    color=cluster_color,
-                    fill=True,
-                    fill_color=cluster_color,
-                    fill_opacity=0.7,
-                    popup=folium.Popup(popup_content, max_width=300),
-                    tooltip=f"Cluster {cluster_id} ({coverage_type}): Click for details"
-                ).add_to(cluster_map)
+        # Add markers with popups and tooltips
+        for _, row in cluster_data.iterrows():
+            popup_content = (
+                f"Cluster ID: {cluster_id}"
+                f"Coverage: {row['Coverage Type']}"
+                f"Retail Name: {row.get('Retail Name', 'N/A')}"
+                f"Channel Sub Type: {row.get('Channel Sub Type', 'N/A')}"
+                f"Coordinates: ({row['Latitude']}, {row['Longitude']})"
+            )
+            folium.CircleMarker(
+                location=[row['Latitude'], row['Longitude']],
+                radius=5,  # Smaller radius for sharper points
+                color=cluster_color,
+                fill=True,
+                fill_color=cluster_color,
+                fill_opacity=0.7,
+                popup=folium.Popup(popup_content, max_width=300),
+                tooltip=f"Cluster {cluster_id} (Split Coverage): Click for details"
+            ).add_to(cluster_map)
 
     # Get distributor coordinates
-    distributor_lat, distributor_lon = get_distributor_coordinates(19.234424, 72.969097)
+    distributor_lat, distributor_lon = get_distributor_coordinates(distributor_code)
 
     # Add distributor marker with unique design
     folium.Marker(
@@ -185,23 +184,26 @@ def create_folium_map(data, output_path, title='Cluster Map'):
     for cluster_id, size in sorted(cluster_sizes.items(), key=lambda item: item[1]):
         print(f"Cluster {cluster_id}: {size} points")
 
-def get_distributor_coordinates(default_lat, default_lon):
+def get_distributor_coordinates(distributor_code):
     """
     Ask the user if they want to enter custom distributor coordinates.
     If yes, take input; otherwise, return default values.
     """
-    use_custom_coords = input("Do you want to enter custom Distributor Latitude and Longitude? (yes/no): ").strip().lower()
-    if use_custom_coords == 'yes':
-        try:
-            lat = float(input("Enter Distributor Latitude: ").strip())
-            lon = float(input("Enter Distributor Longitude: ").strip())
-            return lat, lon
-        except ValueError:
-            print("Invalid input! Using default coordinates.")
-            return default_lat, default_lon
-    else:
-        return default_lat, default_lon
 
+    data_folder = 'Data/Distributor_Master'
+    file_name = [f for f in os.listdir(data_folder) if f.endswith('.xlsx')][0]
+    file_path = os.path.join(data_folder, file_name)
+    df2 = pd.read_excel(file_path)
+    matching_row = df2[df2['Distr Code'] == distributor_code]
+
+    if not matching_row.empty:
+        longitude = matching_row['Distributor Longitude'].values[0]
+        latitude = matching_row['Distributor Latitude'].values[0]
+        print(f"Longitude: {longitude}, Latitude: {latitude}")
+        return latitude, longitude
+    else:
+        print("No matching row found in File 2.")
+        return 0,0
 
 # Main function
 def clustering_algo_main(max_split_cluster_size=20, max_regular_cluster_size=40):
@@ -212,14 +214,14 @@ def clustering_algo_main(max_split_cluster_size=20, max_regular_cluster_size=40)
     output_map_path = 'final_cluster_map_with_coverage.html'
 
     print("Loading and preprocessing data...")
-    data = load_and_preprocess_data(file_path)
+    data, distributor_code = load_and_preprocess_data(file_path)
 
     print("Applying KMeans clustering with different limits...")
     # Set different max cluster sizes for 'Split Coverage' and 'Regular'
     data = apply_kmeans_clustering(data, max_split_cluster_size, max_regular_cluster_size)
 
     print("Creating cluster map...")
-    create_folium_map(data, output_map_path)
+    create_folium_map(data, output_map_path, distributor_code)
 
     # print("All maps generated successfully!")
     
@@ -235,6 +237,6 @@ def clustering_algo_main(max_split_cluster_size=20, max_regular_cluster_size=40)
         output_excel_path = 'New_Clusters/New_Clustering_both.xlsx'
         save_to_excel(data, output_excel_path)
 
-# # Run the script
+# Run the script
 # if __name__ == "__main__":
 #     clustering_algo_main()

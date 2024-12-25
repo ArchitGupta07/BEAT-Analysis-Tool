@@ -18,6 +18,9 @@ def load_and_filter_data(file_path):
     data = pd.read_excel(file_path)
     data = data.dropna(subset=['Latitude', 'Longitude'])
 
+    distributor_code = data['Distr Code'].iloc[0]
+
+
     # Filter coordinates within Mumbai's approximate bounds
     # lat_min, lat_max = 18.87, 19.27
     # lon_min, lon_max = 72.77, 72.97
@@ -31,7 +34,7 @@ def load_and_filter_data(file_path):
     regular_data = data[data['Coverage Type'] == 'Regular']
     split_data = data[data['Coverage Type'] == 'Split Coverage']
 
-    return regular_data, split_data
+    return regular_data, split_data,distributor_code
 
 
 def get_convex_hull(points):
@@ -131,19 +134,40 @@ def plot_split_routes(fig, split_data, split_hulls):
     return fig
 
 
-def get_distributor_coordinates(default_lat, default_lon):
-    """Ask the user if they want to enter custom distributor coordinates."""
-    use_custom_coords = input(f"{TextColor.BLUE}Do you want to enter custom Distributor Latitude and Longitude? (yes/no):{TextColor.RESET}").strip().lower()
-    if use_custom_coords == 'yes':
-        try:
-            lat = float(input("Enter Distributor Latitude: ").strip())
-            lon = float(input("Enter Distributor Longitude: ").strip())
-            return lat, lon
-        except ValueError:
-            print(f"{TextColor.RED}Invalid input! Using default coordinates.{TextColor.RESET}")
-            return default_lat, default_lon
+# def get_distributor_coordinates(default_lat, default_lon):
+#     """Ask the user if they want to enter custom distributor coordinates."""
+#     use_custom_coords = input(f"{TextColor.BLUE}Do you want to enter custom Distributor Latitude and Longitude? (yes/no):{TextColor.RESET}").strip().lower()
+#     if use_custom_coords == 'yes':
+#         try:
+#             lat = float(input("Enter Distributor Latitude: ").strip())
+#             lon = float(input("Enter Distributor Longitude: ").strip())
+#             return lat, lon
+#         except ValueError:
+#             print(f"{TextColor.RED}Invalid input! Using default coordinates.{TextColor.RESET}")
+#             return default_lat, default_lon
+#     else:
+#         return default_lat, default_lon
+
+def get_distributor_coordinates(distributor_code):
+    """
+    Ask the user if they want to enter custom distributor coordinates.
+    If yes, take input; otherwise, return default values.
+    """
+
+    data_folder = 'Data/Distributor_Master'
+    file_name = [f for f in os.listdir(data_folder) if f.endswith('.xlsx')][0]
+    file_path = os.path.join(data_folder, file_name)
+    df2 = pd.read_excel(file_path)
+    matching_row = df2[df2['Distr Code'] == distributor_code]
+
+    if not matching_row.empty:
+        longitude = matching_row['Distributor Longitude'].values[0]
+        latitude = matching_row['Distributor Latitude'].values[0]
+        print(f"Longitude: {longitude}, Latitude: {latitude}")
+        return latitude, longitude
     else:
-        return default_lat, default_lon
+        print("No matching row found in File 2.")
+        return 0,0
 
 
 def existing_beat_main():
@@ -151,7 +175,7 @@ def existing_beat_main():
     file_name = [f for f in os.listdir(data_folder) if f.endswith('.xlsx')][0]
     file_path = os.path.join(data_folder, file_name)
 
-    regular_data, split_data = load_and_filter_data(file_path)
+    regular_data, split_data,distributor_code = load_and_filter_data(file_path)
 
     # Combine route codes from both regular and split data
     all_route_codes = pd.concat([regular_data['Route Code'], split_data['Route Code']]).unique()
@@ -172,7 +196,7 @@ def existing_beat_main():
     fig = plot_split_routes(fig, split_data, split_hulls)
 
     # Get distributor coordinates
-    distributor_lat, distributor_lon = get_distributor_coordinates(19.234424, 72.969097)
+    distributor_lat, distributor_lon = get_distributor_coordinates(distributor_code)
 
     # Add distributor marker with unique design
     fig.add_trace(go.Scattermapbox(
@@ -209,5 +233,5 @@ def existing_beat_main():
         fig.show()
 
 
-# if _name_ == "_main_":
+# if __name__ == "__main_":
 #     existing_beat_main()
