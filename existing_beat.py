@@ -19,10 +19,10 @@ def load_and_filter_data(file_path):
     data = data.dropna(subset=['Latitude', 'Longitude'])
 
     # Filter coordinates within Mumbai's approximate bounds
-    lat_min, lat_max = 18.87, 19.27
-    lon_min, lon_max = 72.77, 72.97
-    data = data[(data['Latitude'] >= lat_min) & (data['Latitude'] <= lat_max) &
-                (data['Longitude'] >= lon_min) & (data['Longitude'] <= lon_max)]
+    # lat_min, lat_max = 18.87, 19.27
+    # lon_min, lon_max = 72.77, 72.97
+    data = data[(data['Latitude'] >= 18.50) & (data['Latitude'] <= 19.90) & 
+                (data['Longitude'] >= 72.60) & (data['Longitude'] <= 73.10)]
     
     # Exclude rows where Channel is 'Wholesalers'
     data = data[data['Channel'] != 'Wholesalers']
@@ -209,5 +209,5 @@ def existing_beat_main():
         fig.show()
 
 
-# if __name__ == "__main__":
+# if _name_ == "_main_":
 #     existing_beat_main()

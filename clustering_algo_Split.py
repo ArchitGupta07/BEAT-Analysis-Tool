@@ -20,7 +20,7 @@ def load_and_preprocess_data(file_path):
         raise ValueError("The Excel file must contain 'Latitude', 'Longitude', and 'Coverage Type' columns.")
 
     data = data.dropna(subset=['Latitude', 'Longitude', 'Coverage Type'])
-
+    distributor_code = data['Distr Code'].iloc[0]
     # Exclude rows where Channel is 'Wholesalers'
     data = data[data['Channel'] != 'Wholesalers']
 
@@ -28,7 +28,7 @@ def load_and_preprocess_data(file_path):
     data = data[(data['Latitude'] >= 18.87) & (data['Latitude'] <= 19.30) & 
                 (data['Longitude'] >= 72.77) & (data['Longitude'] <= 72.98)]
 
-    return data
+    return data, distributor_code
 
 # Function to apply KMeans clustering for 'Split Coverage' only
 def apply_kmeans_clustering(data, max_split_cluster_size=20, min_cluster_size=10):
@@ -93,7 +93,7 @@ def save_to_excel(data, output_excel_path):
     print(f"Data with cluster IDs saved to {output_excel_path}")
 
 # Function to create a Folium map for 'Split Coverage' clusters
-def create_folium_map(data, output_path, title='Cluster Map'):
+def create_folium_map(data, output_path, distributor_code, title='Cluster Map'):
     mean_lat, mean_lon = data['Latitude'].mean(), data['Longitude'].mean()
     # Use a grayscale tile layer
     cluster_map = folium.Map(location=[mean_lat, mean_lon], zoom_start=12, tiles='CartoDB positron')
@@ -151,7 +151,7 @@ def create_folium_map(data, output_path, title='Cluster Map'):
             ).add_to(cluster_map)
 
     # Get distributor coordinates
-    distributor_lat, distributor_lon = get_distributor_coordinates(19.234424, 72.969097)
+    distributor_lat, distributor_lon = get_distributor_coordinates(distributor_code)
 
     # Add distributor marker with unique design
     folium.Marker(
@@ -179,22 +179,27 @@ def create_folium_map(data, output_path, title='Cluster Map'):
 
 
 
-def get_distributor_coordinates(default_lat, default_lon):
+def get_distributor_coordinates(distributor_code):
     """
     Ask the user if they want to enter custom distributor coordinates.
     If yes, take input; otherwise, return default values.
     """
-    use_custom_coords = input("Do you want to enter custom Distributor Latitude and Longitude? (yes/no): ").strip().lower()
-    if use_custom_coords == 'yes':
-        try:
-            lat = float(input("Enter Distributor Latitude: ").strip())
-            lon = float(input("Enter Distributor Longitude: ").strip())
-            return lat, lon
-        except ValueError:
-            print("Invalid input! Using default coordinates.")
-            return default_lat, default_lon
+
+    data_folder = 'Data/Distributor_Master'
+    file_name = [f for f in os.listdir(data_folder) if f.endswith('.xlsx')][0]
+    file_path = os.path.join(data_folder, file_name)
+    df2 = pd.read_excel(file_path)
+    matching_row = df2[df2['Distr Code'] == distributor_code]
+
+    if not matching_row.empty:
+        longitude = matching_row['Distributor Longitude'].values[0]
+        latitude = matching_row['Distributor Latitude'].values[0]
+        print(f"Longitude: {longitude}, Latitude: {latitude}")
+        return latitude, longitude
     else:
-        return default_lat, default_lon
+        print("No matching row found in File 2.")
+        return 0,0
+    
     
 
 # Main function
@@ -203,15 +208,16 @@ def clustering_algo_split_main(max_split_cluster_size=20, min_cluster_size=10):
     file_name = [f for f in os.listdir(data_folder) if f.endswith('.xlsx')][0]
     file_path = os.path.join(data_folder, file_name)
     output_map_path = 'Cluster_Split.html'
+    
 
     print("Loading and preprocessing data...")
-    data = load_and_preprocess_data(file_path)
+    data, distributor_code = load_and_preprocess_data(file_path)
 
     print("Applying KMeans clustering for 'Split Coverage'...")
     data = apply_kmeans_clustering(data, max_split_cluster_size, min_cluster_size)
 
     print("Creating cluster map...")
-    create_folium_map(data, output_map_path)
+    create_folium_map(data, output_map_path, distributor_code)
 
     print("All maps generated successfully!")
     
