@@ -56,7 +56,10 @@ def handle_clustering_option():
             print("\nRunning Both Split and Regular Coverage Clustering...")
 
             sizes = handle_multiple_max_cluster_sizes()
-            clustering_algo.clustering_algo_main(sizes[0], sizes[1])
+            if sizes:
+                clustering_algo.clustering_algo_main(sizes[0], sizes[1])
+            else:
+                clustering_algo.clustering_algo_main()
             break
 
         else:

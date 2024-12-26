@@ -29,6 +29,8 @@ def load_and_filter_data(file_path):
     
     # Exclude rows where Channel is 'Wholesalers'
     data = data[data['Channel'] != 'Wholesalers']
+    data = data[data['Compliant status'] == 0]
+    data = data[data['Day'] == 'Friday']
 
     # Filter data for Regular and Split Coverage
     regular_data = data[data['Coverage Type'] == 'Regular']

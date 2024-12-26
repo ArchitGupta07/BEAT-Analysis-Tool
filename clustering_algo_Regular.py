@@ -23,15 +23,21 @@ def load_and_preprocess_data(file_path):
     distributor_code = data['Distr Code'].iloc[0]
     # Exclude rows where Channel is 'Wholesalers'
     data = data[data['Channel'] != 'Wholesalers']
+    
+    data = data[data['Compliant status'] == 0]
+    data = data[data['Day'] == 'Friday']
 
     # Filter for coordinates in Mumbai
     data = data[(data['Latitude'] >= 18.50) & (data['Latitude'] <= 19.90) & 
                 (data['Longitude'] >= 72.60) & (data['Longitude'] <= 73.10)]
+    
+    print(len(data))
+
 
     return data, distributor_code
 
 # Function to apply KMeans clustering for 'Regular' coverage
-def apply_kmeans_clustering(data, max_regular_cluster_size=40, min_cluster_size=20):
+def apply_kmeans_clustering(data, max_regular_cluster_size=30, min_cluster_size=20):
     # Filter the data for 'Regular' coverage
     regular_data = data[data['Coverage Type'] == 'Regular']
 
@@ -198,7 +204,7 @@ def get_distributor_coordinates(distributor_code):
         return 0,0
 
 # Main function
-def clustering_algo_regular_main(max_regular_cluster_size=40):
+def clustering_algo_regular_main(max_regular_cluster_size=30):
     
     data_folder = 'Data'
     file_name = [f for f in os.listdir(data_folder) if f.endswith('.xlsx')][0]
@@ -231,5 +237,5 @@ def clustering_algo_regular_main(max_regular_cluster_size=40):
         save_to_excel(data, output_excel_path)
 
 # # # Run the script
-# if __name__ == "__main__":
-#     clustering_algo_regular_main()
+if __name__ == "__main__":
+    clustering_algo_regular_main()
