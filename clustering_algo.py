@@ -26,8 +26,8 @@ def load_and_preprocess_data(file_path):
     distributor_code = data['Distr Code'].iloc[0]
 
     # Filter for coordinates in Mumbai
-    data = data[(data['Latitude'] >= 18.87) & (data['Latitude'] <= 19.30) & 
-                (data['Longitude'] >= 72.77) & (data['Longitude'] <= 72.98)]
+    data = data[(data['Latitude'] >= 18.50) & (data['Latitude'] <= 19.90) & 
+                (data['Longitude'] >= 72.60) & (data['Longitude'] <= 73.10)]
 
     return data, distributor_code
 
