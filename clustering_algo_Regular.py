@@ -25,7 +25,7 @@ def load_and_preprocess_data(file_path):
     data = data[data['Channel'] != 'Wholesalers']
     
     data = data[data['Compliant status'] == 0]
-    data = data[data['Day'] == 'Friday']
+    data = data[data['Day'] == 'Mon']
 
     # Filter for coordinates in Mumbai
     data = data[(data['Latitude'] >= 18.50) & (data['Latitude'] <= 19.90) & 
@@ -110,8 +110,8 @@ def create_folium_map(data, output_path, distributor_code, title='Cluster Map'):
 
     cluster_sizes = {}  # Dictionary to store cluster sizes
 
-    # Only process 'Split Coverage' data
-    coverage_data = data[data['Coverage Type'] == 'Split Coverage']
+    # Only process 'Regular Coverage' data
+    coverage_data = data[data['Coverage Type'] == 'Regular']
 
     for cluster_id in coverage_data['cluster_id'].unique():
         cluster_data = coverage_data[coverage_data['cluster_id'] == cluster_id]
@@ -120,7 +120,7 @@ def create_folium_map(data, output_path, distributor_code, title='Cluster Map'):
         # Count the number of points in the current cluster
         cluster_sizes[cluster_id] = len(cluster_data)
 
-        print(f"Cluster {cluster_id} (Split Coverage) contains {cluster_sizes[cluster_id]} points.")
+        print(f"Cluster {cluster_id} (Regular) contains {cluster_sizes[cluster_id]} points.")
 
         if len(cluster_data) > 2:
             points = cluster_data[['Latitude', 'Longitude']].to_numpy()
@@ -152,7 +152,7 @@ def create_folium_map(data, output_path, distributor_code, title='Cluster Map'):
                 fill_color=cluster_color,
                 fill_opacity=0.7,
                 popup=folium.Popup(popup_content, max_width=300),
-                tooltip=f"Cluster {cluster_id} (Split Coverage): Click for details"
+                tooltip=f"Cluster {cluster_id} (Regular Coverage): Click for details"
             ).add_to(cluster_map)
 
     # Get distributor coordinates

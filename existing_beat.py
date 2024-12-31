@@ -29,8 +29,6 @@ def load_and_filter_data(file_path):
     
     # Exclude rows where Channel is 'Wholesalers'
     data = data[data['Channel'] != 'Wholesalers']
-    data = data[data['Compliant status'] == 0]
-    data = data[data['Day'] == 'Friday']
 
     # Filter data for Regular and Split Coverage
     regular_data = data[data['Coverage Type'] == 'Regular']
@@ -135,7 +133,6 @@ def plot_split_routes(fig, split_data, split_hulls):
 
     return fig
 
-
 # def get_distributor_coordinates(default_lat, default_lon):
 #     """Ask the user if they want to enter custom distributor coordinates."""
 #     use_custom_coords = input(f"{TextColor.BLUE}Do you want to enter custom Distributor Latitude and Longitude? (yes/no):{TextColor.RESET}").strip().lower()
@@ -235,5 +232,5 @@ def existing_beat_main():
         fig.show()
 
 
-# if __name__ == "__main_":
-#     existing_beat_main()
+if __name__ == "__main__":
+    existing_beat_main()
