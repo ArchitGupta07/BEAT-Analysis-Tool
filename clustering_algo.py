@@ -20,13 +20,14 @@ def load_and_preprocess_data(file_path):
         raise ValueError("The Excel file must contain 'Latitude', 'Longitude', and 'Coverage Type' columns.")
 
     data = data.dropna(subset=['Latitude', 'Longitude', 'Coverage Type'])
-    distributor_code = data['Distr Code'].iloc[0]
+
     # Exclude rows where Channel is 'Wholesalers'
     data = data[data['Channel'] != 'Wholesalers']
+    distributor_code = data['Distr Code'].iloc[0]
 
     # Filter for coordinates in Mumbai
-    data = data[(data['Latitude'] >= 18.50) & (data['Latitude'] <= 19.90) & 
-                (data['Longitude'] >= 72.60) & (data['Longitude'] <= 73.10)]
+    data = data[(data['Latitude'] >= 18.87) & (data['Latitude'] <= 19.30) & 
+                (data['Longitude'] >= 72.77) & (data['Longitude'] <= 72.98)]
 
     return data, distributor_code
 
@@ -112,52 +113,55 @@ def create_folium_map(data, output_path, distributor_code, title='Cluster Map'):
 
     cluster_sizes = {}  # Dictionary to store cluster sizes
 
-    # Only process 'Split Coverage' data
-    coverage_data = data[data['Coverage Type'] == 'Split Coverage']
+    # Separate points by 'Coverage Type' category
+    for coverage_type in data['Coverage Type'].unique():
+        coverage_data = data[data['Coverage Type'] == coverage_type]
 
-    for cluster_id in coverage_data['cluster_id'].unique():
-        cluster_data = coverage_data[coverage_data['cluster_id'] == cluster_id]
-        cluster_color = colors[cluster_id % len(colors)]
+        for cluster_id in coverage_data['cluster_id'].unique():
+            cluster_data = coverage_data[coverage_data['cluster_id'] == cluster_id]
+            cluster_color = colors[cluster_id % len(colors)]
 
-        # Count the number of points in the current cluster
-        cluster_sizes[cluster_id] = len(cluster_data)
+            # Count the number of points in the current cluster
+            cluster_sizes[cluster_id] = len(cluster_data)
 
-        print(f"Cluster {cluster_id} (Split Coverage) contains {cluster_sizes[cluster_id]} points.")
+            print(f"Cluster {cluster_id} ({coverage_type}) contains {cluster_sizes[cluster_id]} points.")
 
-        if len(cluster_data) > 2:
-            points = cluster_data[['Latitude', 'Longitude']].to_numpy()
-            hull = ConvexHull(points)
-            hull_points = points[hull.vertices]
-            hull_polygon = [tuple(point) for point in hull_points] + [tuple(hull_points[0])]
+            if len(cluster_data) > 2:
+                points = cluster_data[['Latitude', 'Longitude']].to_numpy()
+                hull = ConvexHull(points)
+                hull_points = points[hull.vertices]
+                hull_polygon = [tuple(point) for point in hull_points] + [tuple(hull_points[0])]
 
-            folium.PolyLine(
-                locations=hull_polygon,
-                color=cluster_color,
-                weight=2,
-                opacity=0.7
-            ).add_to(cluster_map)
+                folium.PolyLine(
+                    locations=hull_polygon,
+                    color=cluster_color,
+                    weight=2,
+                    opacity=0.7
+                ).add_to(cluster_map)
 
-        # Add markers with popups and tooltips
-        for _, row in cluster_data.iterrows():
-            popup_content = (
-                f"Cluster ID: {cluster_id}"
-                f"Coverage: {row['Coverage Type']}"
-                f"Retail Name: {row.get('Retail Name', 'N/A')}"
-                f"Channel Sub Type: {row.get('Channel Sub Type', 'N/A')}"
-                f"Coordinates: ({row['Latitude']}, {row['Longitude']})"
-            )
-            folium.CircleMarker(
-                location=[row['Latitude'], row['Longitude']],
-                radius=5,  # Smaller radius for sharper points
-                color=cluster_color,
-                fill=True,
-                fill_color=cluster_color,
-                fill_opacity=0.7,
-                popup=folium.Popup(popup_content, max_width=300),
-                tooltip=f"Cluster {cluster_id} (Split Coverage): Click for details"
-            ).add_to(cluster_map)
+            # Add markers with popups and tooltips
+            for _, row in cluster_data.iterrows():
+                popup_content = (
+                    f"Cluster ID: {cluster_id}"
+                    f"Coverage: {coverage_type}"
+                    f"Retail Name: {row.get('Retailer Name', 'N/A')}"
+                    f"Channel Sub Type: {row.get('Channel Sub Type', 'N/A')}"
+                    f"Coordinates: ({row['Latitude']}, {row['Longitude']})"
+                )
+                folium.CircleMarker(
+                    location=[row['Latitude'], row['Longitude']],
+                    radius=5,  # Smaller radius for sharper points
+                    color=cluster_color,
+                    fill=True,
+                    fill_color=cluster_color,
+                    fill_opacity=0.7,
+                    popup=folium.Popup(popup_content, max_width=300),
+                    tooltip=f"Cluster {cluster_id} ({coverage_type}): Click for details"
+                ).add_to(cluster_map)
 
     # Get distributor coordinates
+    # distributor_lat, distributor_lon = get_distributor_coordinates(19.234424, 72.969097)
+    
     distributor_lat, distributor_lon = get_distributor_coordinates(distributor_code)
 
     # Add distributor marker with unique design
@@ -205,6 +209,7 @@ def get_distributor_coordinates(distributor_code):
         print("No matching row found in File 2.")
         return 0,0
 
+
 # Main function
 def clustering_algo_main(max_split_cluster_size=20, max_regular_cluster_size=40):
     
@@ -214,7 +219,7 @@ def clustering_algo_main(max_split_cluster_size=20, max_regular_cluster_size=40)
     output_map_path = 'final_cluster_map_with_coverage.html'
 
     print("Loading and preprocessing data...")
-    data, distributor_code = load_and_preprocess_data(file_path)
+    data , distributor_code = load_and_preprocess_data(file_path)
 
     print("Applying KMeans clustering with different limits...")
     # Set different max cluster sizes for 'Split Coverage' and 'Regular'
@@ -237,6 +242,6 @@ def clustering_algo_main(max_split_cluster_size=20, max_regular_cluster_size=40)
         output_excel_path = 'New_Clusters/New_Clustering_both.xlsx'
         save_to_excel(data, output_excel_path)
 
-# Run the script
+# # Run the script
 # if __name__ == "__main__":
 #     clustering_algo_main()
